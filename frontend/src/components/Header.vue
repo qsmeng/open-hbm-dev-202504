@@ -3,8 +3,8 @@
   <header class="app-header">
     <div class="left-section">
       <router-link to="/">首页</router-link>
-      <router-link to="/explore">探索</router-link>
-      <router-link to="/rules">规则</router-link>
+      <router-link to="/game">探索</router-link>
+      <router-link to="/rule">规则</router-link>
     </div>
     <div class="right-section">
       <router-link v-if="!isLoggedIn" to="/auth">登录/注册</router-link>

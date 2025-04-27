@@ -3,34 +3,35 @@
     <Header />
     <div class="auth-content">
       <div class="auth-container">
-      <h2 class="auth-title">{{ isLogin ? '用户登录' : '用户注册' }}</h2>
-      <form @submit.prevent="handleAuth" class="auth-form">
+        <h2 class="auth-title">{{ isLogin ? '用户登录' : '用户注册' }}</h2>
+        <form @submit.prevent="handleAuth" class="auth-form">
+          <div class="form-group">
+            <label for="username">用户名</label>
+            <input type="text" id="username" v-model="username" required placeholder="请输入用户名">
+          </div>
+          <div v-if="!isLogin" class="form-group">
+            <label for="email">邮箱</label>
+            <input type="email" id="email" v-model="email" required placeholder="请输入邮箱">
+          </div>
+          <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" v-model="password" required placeholder="请输入密码">
+          </div>
+          <div v-if="!isLogin" class="form-group">
+            <label for="confirm-password">确认密码</label>
+            <input type="password" id="confirm-password" v-model="confirmPassword" required placeholder="请再次输入密码">
+          </div>
+          <button type="submit" class="auth-button">{{ isLogin ? '登录' : '注册' }}</button>
+        </form>
+        <div class="auth-options">
+          <a href="#" @click="toggleAuthMode" class="auth-link">
+            {{ isLogin ? '没有账号？立即注册' : '已有账号？立即登录' }}
+          </a>
+          <a href="#" @click="handleForgotPassword" class="auth-link">忘记密码？</a>
+        </div>
         <div class="form-group">
-          <label for="username">用户名</label>
-          <input type="text" id="username" v-model="username" required placeholder="请输入用户名">
+          <router-link to="/" class="back-button">返回首页</router-link>
         </div>
-        <div v-if="!isLogin" class="form-group">
-          <label for="email">邮箱</label>
-          <input type="email" id="email" v-model="email" required placeholder="请输入邮箱">
-        </div>
-        <div class="form-group">
-          <label for="password">密码</label>
-          <input type="password" id="password" v-model="password" required placeholder="请输入密码">
-        </div>
-        <div v-if="!isLogin" class="form-group">
-          <label for="confirm-password">确认密码</label>
-          <input type="password" id="confirm-password" v-model="confirmPassword" required placeholder="请再次输入密码">
-        </div>
-        <button type="submit" class="auth-button">{{ isLogin ? '登录' : '注册' }}</button>
-      </form>
-      <div class="auth-options">
-        <a href="#" @click="toggleAuthMode" class="auth-link">
-          {{ isLogin ? '没有账号？立即注册' : '已有账号？立即登录' }}
-        </a>
-        <a href="#" @click="handleForgotPassword" class="auth-link">忘记密码？</a>
-      </div>
-      <div class="form-group">
-        <router-link to="/" class="back-button">返回首页</router-link>
       </div>
     </div>
   </div>
