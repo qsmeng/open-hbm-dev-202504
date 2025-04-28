@@ -1,82 +1,105 @@
 <template>
-  <div class="game-view">
+  <div class="forum-layout">
     <Header />
-    <div class="game-status-bar">
-      <div class="status-item">
-        <span class="label">轮次:</span>
-        <span class="value">{{ turnCount }}</span>
-      </div>
-      <div class="status-item">
-        <span class="label">稳定度:</span>
-        <span class="value">{{ stability }}%</span>
-      </div>
-      <div class="status-item">
-        <span class="label">体力:</span>
-        <div class="energy-container">
-          <div class="energy-bar" :style="{ width: energy + '%' }"></div>
-          <span class="energy-value">{{ energy }}/100</span>
+    
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <div class="world-map">
+        <div v-if="loadingWorld" class="loading">加载中...</div>
+        <div v-else class="world-posts">
+          <div v-for="post in worldPosts" :key="post.id" class="post">
+            <h3>{{ post.title }}</h3>
+            <div class="post-content" v-html="post.content"></div>
+            <div class="post-meta">
+              <span>作者: {{ post.author }}</span>
+              <span>时间: {{ formatPostTime(post.createdAt) }}</span>
+            </div>
+          </div>
         </div>
+      </div>
+      <div class="story-content">
+        <h2>故事背景</h2>
+        <p>{{ currentStory }}</p>
       </div>
     </div>
-    <div class="game-container">
-      <!-- Main game area -->
-      <div class="game-main">
-        <h1>游戏页面</h1>
-        <div class="chat-area">
-          <div class="messages" ref="messagesContainer">
-            <div v-for="(message, index) in messages" :key="index" 
-                 :class="['message', message.sender === 'user' ? 'user-message' : 'bot-message']">
-              <div class="message-content">
-                <span class="message-text">{{ message.text }}</span>
-                <span class="message-timestamp">{{ formatTimestamp(message.timestamp) }}</span>
-              </div>
-            </div>
-            <div v-if="aiOptions.length > 0" class="ai-options-container">
-              <div v-for="(option, index) in aiOptions" :key="'ai-'+index"
-                   class="ai-option" @click="selectAiOption(option)">
-                {{ option }}
-              </div>
-            </div>
-          </div>
-          <div class="message-input">
-            <input v-model="inputMessage" @keyup.enter="sendMessage" 
-                   placeholder="输入消息..." class="input-field" />
-            <button @click="sendMessage" class="send-button">发送</button>
-          </div>
+    
+    <!-- 可折叠侧边栏 -->
+    <div class="sidebar" :class="{collapsed: isSidebarCollapsed}">
+      <button class="toggle-sidebar" @click="toggleSidebar">
+        {{ isSidebarCollapsed ? '>' : '<' }}
+      </button>
+      <div class="treasure-area" v-show="!isSidebarCollapsed">
+        <div class="treasure-image-container" @click="rotateTreasure">
+          <img :src="currentTreasure.image" alt="宝物" 
+               :style="{ transform: `rotateY(${rotationAngle}deg)` }">
         </div>
-      </div>
-      
-      <!-- Side panels -->
-      <div class="side-panel">
-        <!-- Treasure display section -->
-        <div class="treasure-area">
-          <div class="treasure-image-container" @click="rotateTreasure">
-            <img :src="currentTreasure.image" alt="宝物" class="treasure-image" 
-                 :style="{ transform: `rotateY(${rotationAngle}deg)` }">
-          </div>
+        <div class="treasure-details">
+          <h3 v-if="currentTreasure.identified">{{ currentTreasure.name }}</h3>
+          <h3 v-else>未鉴定的宝物</h3>
           
-          <div class="treasure-details">
-            <h3 v-if="currentTreasure.identified">{{ currentTreasure.name }}</h3>
-            <h3 v-else>未鉴定的宝物</h3>
-            
-            <div v-if="currentTreasure.identified" class="treasure-properties">
-              <div class="property">
-                <span class="label">强度:</span>
-                <span class="value">{{ currentTreasure.strength }}</span>
-              </div>
-              <div class="property">
-                <span class="label">效果:</span>
-                <span class="value">{{ currentTreasure.effect }}</span>
-              </div>
+          <div v-if="currentTreasure.identified" class="treasure-properties">
+            <div class="property">
+              <span class="label">强度:</span>
+              <span class="value">{{ currentTreasure.strength }}</span>
             </div>
-            <div v-else class="unidentified-prompt">
-              <button @click="identifyTreasure" class="identify-button">鉴定宝物</button>
+            <div class="property">
+              <span class="label">效果:</span>
+              <span class="value">{{ currentTreasure.effect }}</span>
             </div>
+          </div>
+          <div v-else class="unidentified-prompt">
+            <button @click="identifyTreasure" class="identify-button">鉴定宝物</button>
           </div>
         </div>
       </div>
     </div>
-    <router-link to="/" class="back-button">返回首页</router-link>
+    
+    <!-- 底部输入区 -->
+    <div class="input-area">
+      <div class="chat-area">
+        <div class="messages" ref="messagesContainer">
+          <div v-for="(message, index) in messages" :key="index" 
+               :class="['message', message.sender === 'user' ? 'user-message' : 'bot-message']">
+            <div class="message-content">
+              <span class="message-text">{{ message.text }}</span>
+              <span class="message-timestamp">{{ formatTimestamp(message.timestamp) }}</span>
+            </div>
+          </div>
+          <div v-if="aiOptions.length > 0" class="ai-options-container">
+            <div v-for="(option, index) in aiOptions" :key="'ai-'+index"
+                 class="ai-option" @click="selectAiOption(option)">
+              {{ option }}
+            </div>
+          </div>
+        </div>
+        <div class="message-input">
+          <input v-model="inputMessage" @keyup.enter="sendMessage" 
+                 placeholder="输入消息..." class="input-field" />
+          <button @click="sendMessage" class="send-button">发送</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 悬浮面板 -->
+    <div class="floating-panel" v-if="showFloatingPanel" 
+         :style="{ left: panelPosition.x + 'px', top: panelPosition.y + 'px' }">
+      <div class="panel-header" @mousedown="startDrag">
+        <span>游戏状态</span>
+        <button @click="togglePanel">×</button>
+      </div>
+      <div class="panel-content">
+        <div class="status-item">
+          <span>轮次: {{ turnCount }}</span>
+        </div>
+        <div class="status-item">
+          <span>稳定度: {{ stability }}%</span>
+        </div>
+        <div class="status-item">
+          <span>体力: {{ energy }}/100</span>
+        </div>
+      </div>
+    </div>
+    
     <Footer />
   </div>
 </template>
@@ -99,6 +122,65 @@ const turnCount = ref(1)
 const stability = ref(85)
 const energy = ref(80)
 const energyTimer = ref(null)
+
+// 世界帖子数据
+const worldPosts = ref([])
+const loadingWorld = ref(false)
+
+// 获取世界帖子
+const fetchWorldPosts = async () => {
+  loadingWorld.value = true
+  try {
+    const response = await axios.get('/api/world/posts')
+    worldPosts.value = response.data.posts
+  } catch (error) {
+    console.error('获取世界帖子失败:', error)
+  } finally {
+    loadingWorld.value = false
+  }
+}
+
+const formatPostTime = (timestamp) => {
+  return new Date(timestamp).toLocaleString()
+}
+
+// UI状态
+const isSidebarCollapsed = ref(false)
+const showFloatingPanel = ref(true)
+const panelPosition = ref({ x: 20, y: 20 })
+const isDragging = ref(false)
+
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
+}
+
+const togglePanel = () => {
+  showFloatingPanel.value = !showFloatingPanel.value
+}
+
+const startDrag = (e) => {
+  isDragging.value = true
+  const startX = e.clientX
+  const startY = e.clientY
+  const startLeft = panelPosition.value.x
+  const startTop = panelPosition.value.y
+
+  const onMouseMove = (e) => {
+    panelPosition.value = {
+      x: startLeft + e.clientX - startX,
+      y: startTop + e.clientY - startY
+    }
+  }
+
+  const onMouseUp = () => {
+    isDragging.value = false
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
 
 // 宝物数据
 const currentTreasure = ref({
@@ -180,8 +262,40 @@ const identifyTreasure = () => {
   }, 1000)
 }
 
+const selectAiOption = (option) => {
+  inputMessage.value = option
+  aiOptions.value = []
+}
+
+onMounted(() => {
+  scrollToBottom()
+  startEnergyRecovery()
+  fetchWorldPosts()
+})
+
+onUnmounted(() => {
+  if (energyTimer.value) {
+    clearInterval(energyTimer.value)
+  }
+})
+
+// 发送消息时更新游戏状态
+const updateGameState = () => {
+  // 消耗体力
+  energy.value = Math.max(0, energy.value - 10)
+  
+  // 增加轮次
+  turnCount.value += 1
+  
+  // 随机变化稳定度
+  stability.value = Math.min(100, Math.max(0, stability.value + (Math.random() > 0.5 ? 5 : -3)))
+}
+
 const sendMessage = async () => {
-  if (inputMessage.value.trim() === '') return;
+  if (inputMessage.value.trim() === '' || energy.value < 10) return;
+
+  // 更新游戏状态
+  updateGameState()
 
   // 添加用户消息
   messages.value.push({ 
@@ -230,90 +344,102 @@ const sendMessage = async () => {
   scrollToBottom()
   inputMessage.value = '';
 };
-
-const selectAiOption = (option) => {
-  inputMessage.value = option
-  aiOptions.value = []
-}
-
-onMounted(() => {
-  scrollToBottom()
-})
 </script>
 
 <style scoped>
-.game-view {
+.forum-layout {
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas:
+    "header header"
+    "main sidebar"
+    "input input"
+    "footer footer";
+  grid-template-columns: 1fr 300px;
+  grid-template-rows: auto 1fr auto auto;
   min-height: 100vh;
   gap: 1rem;
-}
-
-.game-status-bar {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background-color: white;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.label {
-  font-weight: bold;
-  color: #64748b;
-}
-
-.value {
-  font-weight: 600;
-  color: #334155;
-}
-
-.energy-container {
-  position: relative;
-  width: 100px;
-  height: 20px;
-  background-color: #e2e8f0;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.energy-bar {
-  position: absolute;
-  height: 100%;
-  background-color: #10b981;
-  transition: width 0.3s ease;
-}
-
-.energy-value {
-  position: absolute;
-  width: 100%;
-  text-align: center;
-  font-size: 0.75rem;
-  color: white;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-}
-
-.game-container {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 1rem;
   padding: 1rem;
-  height: calc(100vh - 120px);
 }
 
-.game-main {
+.main-content {
+  grid-area: main;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
+.world-map {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: white;
+}
+
+.story-content {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: white;
+}
+
+.sidebar {
+  grid-area: sidebar;
+  position: relative;
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 50px;
+}
+
+.toggle-sidebar {
+  position: absolute;
+  left: -25px;
+  top: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.input-area {
+  grid-area: input;
+}
+
+.floating-panel {
+  position: fixed;
+  width: 200px;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.panel-header {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  cursor: move;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-content {
+  padding: 1rem;
+}
+
+.status-item {
+  margin-bottom: 0.5rem;
+}
+
+/* 保留原有聊天区域样式 */
 .chat-area {
   flex: 1;
   display: flex;
@@ -322,6 +448,41 @@ onMounted(() => {
   border-radius: 0.5rem;
   overflow: hidden;
   background: #f8fafc;
+}
+
+/* 保留原有宝物区域样式 */
+.treasure-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: white;
+}
+
+@media (max-width: 768px) {
+  .forum-layout {
+    grid-template-areas:
+      "header"
+      "main"
+      "sidebar"
+      "input"
+      "footer";
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .sidebar.collapsed {
+    width: 60px;
+  }
+
+  .toggle-sidebar {
+    left: 10px;
+  }
 }
 
 .messages {
