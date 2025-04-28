@@ -65,7 +65,7 @@ services:
     # 重试60次 即5分钟 保障足够的编译时间
       retries: 60
 
-  db:
+  mysql:
     image: mysql:8.0.31
     container_name: mysql
     restart: always
@@ -74,13 +74,15 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_HOST: db
+      MYSQL_HOST: ${MYSQL_HOST}
     ports:
       - "3306:3306"
     volumes:
-      - hbm_mysql_data_volume:/var/lib/mysql
       - ../database/mysql/hbm_db_init.sql:/docker-entrypoint-initdb.d/init-db.sql
       - ../database/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+      - hbm_mysql_data_volume:/var/lib/mysql
+    command: >
+      sh -c "chmod 644 /etc/mysql/conf.d/my.cnf && docker-entrypoint.sh mysqld --init-file=/docker-entrypoint-initdb.d/init-db.sql"
     networks:
       - app-network
 
