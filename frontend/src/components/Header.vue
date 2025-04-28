@@ -1,6 +1,5 @@
-<!-- /f:/workspace/open-hbm/src/components/Header.vue -->
 <template>
-  <header class="app-header">
+  <header class="header">
     <div class="left-section">
       <router-link to="/">首页</router-link>
       <router-link to="/game">探索</router-link>
@@ -33,17 +32,10 @@ export default {
 </script>
 
 <style scoped>
-.app-header {
+/* Component-specific styles only */
+.user-info {
   display: flex;
-  justify-content: space-between;
-  padding: 1rem;
-  background-color: #f5f5f5;
+  align-items: center;
+  gap: 0.5rem;
 }
-
-.left-section, .right-section {
-  display: flex;
-  gap: 1rem;
-}
-
-/* You can add more styles as needed */
 </style>

@@ -42,7 +42,7 @@ router = APIRouter(
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT配置 - 生产环境应从环境变量读取
-SECRET_KEY = "your-secret-key"  # TODO: 从环境变量获取
+SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 ALGORITHM = "HS256"  # JWT签名算法
 ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 令牌有效期(分钟)
 
@@ -218,6 +218,10 @@ async def reset_password(request: Request):
     安全说明:
     - 生产环境应通过邮件发送重置链接
     - 重置令牌有效期1小时
+    
+    TODO:
+    - 实现邮件发送功能 - 使用SMTP或邮件服务API
+    - 添加重置令牌刷新机制
     """
     try:
         data = await request.json()

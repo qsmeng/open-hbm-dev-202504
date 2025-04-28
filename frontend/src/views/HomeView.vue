@@ -42,7 +42,7 @@ const { isAuthenticated, username, userAvatar } = useAuth()
 }
 
 .main-content {
-  padding: 20px;
+  padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -51,10 +51,7 @@ const { isAuthenticated, username, userAvatar } = useAuth()
   flex: 1;
 }
 
-.header, .footer {
-  text-align: center;
-  padding: 20px;
-}
+/* Header and footer styles now in main.css */
 
 .title {
   font-size: 24px;

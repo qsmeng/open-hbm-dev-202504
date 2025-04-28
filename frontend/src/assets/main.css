@@ -1,4 +1,24 @@
 @import './base.css';
+/* main.css管理：布局、组件样式 */
+/* Header styles */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.header .left-section,
+.header .right-section {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Main content padding to prevent header overlap */
+.main-content {
+  padding-top: 60px;
+}
 
 #app {
   max-width: 1280px;
