@@ -74,15 +74,14 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_HOST: ${MYSQL_HOST:-localhost}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
     ports:
       - "3306:3306"
     volumes:
-      - ../database/mysql/hbm_db_init.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ../database/mysql/hbm_mysql_init.sql:/docker-entrypoint-initdb.d/init-db.sql
       - ../database/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
       - hbm_mysql_data_volume:/var/lib/mysql
-    command: >
-      sh -c "chmod 644 /etc/mysql/conf.d/my.cnf && docker-entrypoint.sh mysqld --init-file=/docker-entrypoint-initdb.d/init-db.sql"
     networks:
       - app-network
 

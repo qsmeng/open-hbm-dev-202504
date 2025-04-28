@@ -37,9 +37,9 @@ CREATE TABLE replies (
   floor_num INT NOT NULL COMMENT '楼层号',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  INDEX idx_post (post_id),
+  INDEX idx_space (space_id),
   INDEX idx_parent (parent_id),
-  UNIQUE INDEX idx_post_floor (post_id, floor_num)
+  UNIQUE INDEX idx_space_floor (space_id, floor_num)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='回复表';
 
 -- 卡牌表
@@ -54,8 +54,7 @@ CREATE TABLE treasures (
   owner_id VARCHAR(36) NOT NULL COMMENT '拥有者ID',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  INDEX idx_owner (owner_id),
-  INDEX idx_strength (strength)
+  INDEX idx_owner (owner_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='卡牌表';
 
 -- 体力变动日志表
