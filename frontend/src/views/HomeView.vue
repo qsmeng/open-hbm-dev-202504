@@ -21,15 +21,13 @@
         </ul>
       </section>
     </main>
-
-    <footer class="footer">
-      <p>&copy; 2024 半数黑金项目</p>
-    </footer>
+    <Footer />
   </div>
 </template>
 
 <script setup>
 import Header from '@/components/Header.vue'
+import Footer from '@/components/Footer.vue'
 import { ref, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 
