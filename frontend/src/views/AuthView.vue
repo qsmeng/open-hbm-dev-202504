@@ -35,6 +35,7 @@
       </div>
     </div>
   </div>
+  <Footer />
 </template>
 
 <script setup>
@@ -42,6 +43,7 @@ import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const authMode = ref('login') // 'login' | 'register' | 'forgot'
 const username = ref('')
@@ -60,12 +62,12 @@ const toggleAuthMode = () => {
   authMode.value = isLogin.value ? 'register' : 'login'
 }
 
-// 新增: handleForgotPassword 方法
+// 处理忘记密码
 const handleForgotPassword = () => {
-  router.push('/reset-password') // 跳转到重置密码页面
+  router.push('/reset-password')
 }
 
-// 新增: 定义 validateForm 函数
+// 表单验证
 const validateForm = () => {
   if (!isLogin.value && password.value !== confirmPassword.value) {
     alert('两次输入的密码不一致')
@@ -74,49 +76,34 @@ const validateForm = () => {
   return true
 }
 
+// 处理登录/注册
 const handleAuth = async () => {
-  try {
-    const response = await fetch(`${apiBaseUrl}/api/auth/${isLogin.value ? 'login' : 'register'}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',  // 允许发送凭据信息
-      body: JSON.stringify({
-        username: username.value,
-        password: password.value,
-        email: isLogin.value ? undefined : email.value
-      })
-    });
+  if (!validateForm()) return
 
-    if (response.ok) {
-      if (isLogin.value) {
-        const data = await response.json()
-        if (data.access_token) {
-          localStorage.setItem('auth_token', data.access_token)
-          router.push('/')
-        } else {
-          throw new Error('无效的响应格式')
-        }
-      } else {
-        alert('注册成功，请登录')
-        toggleAuthMode('login')
-      }
+  const endpoint = isLogin.value ? 'login' : 'register'
+  const payload = {
+    username: username.value,
+    password: password.value,
+    ...(isRegister.value && { email: email.value })
+  }
+
+  try {
+    const response = await axios.post(`${apiBaseUrl}/api/auth/${endpoint}`, payload, {
+      withCredentials: true
+    })
+
+    if (isLogin.value) {
+      localStorage.setItem('auth_token', response.data.access_token)
+      router.push('/')
     } else {
-      const errorText = await response.text()
-      console.error('请求失败详情:', errorText)
-      try {
-        const error = JSON.parse(errorText)
-        alert(`操作失败: ${error.detail || error.message || '未知错误'}`)
-      } catch {
-        alert(`操作失败: ${response.status} ${response.statusText}`)
-      }
+      alert('注册成功，请登录')
+      toggleAuthMode()
     }
   } catch (error) {
-    console.error('请求失败:', error);
-    alert('网络请求失败，请检查服务是否正常运行');
+    console.error('请求失败:', error)
+    alert(error.response?.data?.detail || '请求失败，请稍后重试')
   }
-};
+}
 </script>
 
 <style scoped>
