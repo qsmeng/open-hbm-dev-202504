@@ -1,0 +1,58 @@
+/* 移动端专用样式 */
+
+/* 基础设置 */
+html.mobile {
+  font-size: 14px;
+}
+
+/* 空间列表项优化 */
+.space-item {
+  padding: 12px;
+  min-height: 60px;
+}
+
+.space-item:hover {
+  transform: none; /* 禁用悬停效果 */
+}
+
+/* 卡牌展示优化 */
+.card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.card-item {
+  padding: 8px;
+}
+
+.card-image {
+  height: 100px;
+}
+
+/* 行动按钮优化 */
+.action-button {
+  width: 100%;
+  padding: 14px 0;
+  font-size: 16px;
+}
+
+/* 输入框优化 */
+.input-box {
+  padding: 10px;
+}
+
+.input-box input {
+  height: 40px;
+  font-size: 14px;
+}
+
+/* 对话历史优化 */
+.reply-history {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.reply-item {
+  padding: 10px;
+  font-size: 14px;
+}

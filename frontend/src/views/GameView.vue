@@ -62,7 +62,7 @@
     <div class="status-panel">
       <!-- 宝物区 -->
       <div class="treasure-area">
-        <div v-if="currentTreasure.identified" class="treasure-identified">
+        <div v-if="currentTreasure && currentTreasure.identified" class="treasure-identified">
           <img :src="currentTreasure.image" alt="宝物" class="treasure-image">
           <h3>{{ currentTreasure.name }}</h3>
           <div class="treasure-stats">
@@ -71,7 +71,7 @@
           </div>
         </div>
         <div v-else class="treasure-unidentified">
-          <img src="@/assets/images/background.png" alt="未鉴定宝物" class="treasure-image">
+          <img src="@/assets/images/defcard.png" alt="未鉴定宝物" class="treasure-image">
           <button @click="identifyTreasure" class="identify-btn">鉴定宝物</button>
         </div>
       </div>
@@ -118,310 +118,116 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { ref } from 'vue';
+import Header from '@/components/Header.vue';
+import Footer from '@/components/Footer.vue';
 
-// 空间数据
-const tempSpaces = ref([])
-const stableSpaces = ref([])
-const fixedSpaces = ref([])
-const currentSpace = ref(null)
-const currentReplies = ref([])
-
-// 状态数据
-const turnCount = ref(1)
-const energy = ref(100)
-const experience = ref(0)
-
-// 宝物数据
+// 定义使用的组件
+const currentSpace = ref(null);
+const tempSpaces = ref([
+  { id: 'temp1', name: '临时空间1' },
+  { id: 'temp2', name: '临时空间2' }
+]);
+const stableSpaces = ref([
+  { id: 'stable1', name: '稳定空间1', stability: 75 },
+  { id: 'stable2', name: '稳定空间2', stability: 85 }
+]);
+const fixedSpaces = ref([
+  { id: 'fixed1', name: '固定空间1' },
+  { id: 'fixed2', name: '固定空间2' }
+]);
+const currentReplies = ref([
+  { id: 'r1', content: '这是一个回复', author: '用户1', createdAt: new Date() }
+]);
 const currentTreasure = ref({
   identified: false,
   name: '',
-  image: '',
   strength: 0,
-  effect: ''
-})
+  effect: '',
+  image: ''
+});
+const turnCount = ref(5);
+const energy = ref(100);
+const experience = ref(0);
+const showCardSelection = ref(false);
+const availableCards = ref([
+  { id: 'card1', name: '卡牌1' },
+  { id: 'card2', name: '卡牌2' }
+]);
+const customMessage = ref('');
 
-// 卡牌数据
-const availableCards = ref([])
-const showCardSelection = ref(false)
-
-// 初始化加载数据
-const loadInitialData = async () => {
-  try {
-    const [spacesRes, cardsRes] = await Promise.all([
-      axios.get('/api/game/spaces'),
-      axios.get('/api/game/treasures')
-    ])
-    
-    tempSpaces.value = spacesRes.data.filter(s => s.type === 'temp')
-    stableSpaces.value = spacesRes.data.filter(s => s.type === 'stable')
-    fixedSpaces.value = spacesRes.data.filter(s => s.type === 'fixed')
-    availableCards.value = cardsRes.data
-  } catch (error) {
-    console.error('初始化数据加载失败:', error)
-  }
+// 格式化时间方法
+function formatTime(date) {
+  return date.toLocaleString();
 }
 
-// 加载空间详情
-const loadSpace = async (space) => {
-  try {
-    const [spaceRes, repliesRes] = await Promise.all([
-      axios.get(`/api/game/spaces/${space.id}/status`),
-      axios.get(`/api/game/spaces/${space.id}/replies`)
-    ])
-    
-    currentSpace.value = spaceRes.data
-    currentReplies.value = repliesRes.data
-  } catch (error) {
-    console.error('加载空间详情失败:', error)
-  }
+// 加载空间方法
+function loadSpace(space) {
+  currentSpace.value = space;
 }
 
-// 鉴定宝物
-const identifyTreasure = async () => {
-  try {
-    const res = await axios.post(`/api/game/treasures/identify`, {
-      treasureId: currentTreasure.value.id
-    })
-    currentTreasure.value = res.data
-  } catch (error) {
-    console.error('鉴定宝物失败:', error)
-  }
+// 返回列表方法
+function backToList() {
+  currentSpace.value = null;
 }
 
-// 执行行动
-const takeAction = async (actionType) => {
-  try {
-    const res = await axios.post('/api/game/actions', {
-      type: actionType,
-      spaceId: currentSpace.value?.id
-    })
-    
-    // 更新状态
-    energy.value = res.data.energy
-    turnCount.value = res.data.turnCount
-    experience.value = res.data.experience
-    
-    // 如果有新宝物
-    if (res.data.newTreasure) {
-      currentTreasure.value = res.data.newTreasure
-    }
-  } catch (error) {
-    console.error('执行行动失败:', error)
-  }
+// 鉴定宝物方法
+function identifyTreasure() {
+  // 模拟鉴定结果
+  currentTreasure.value = {
+    identified: true,
+    name: '神秘宝珠',
+    strength: 150,
+    effect: '增加空间稳定性',
+    image: '@/assets/images/treasure.png'
+  };
 }
 
-// 使用卡牌
-const useCard = async (card) => {
-  try {
-    const res = await axios.post(`/api/game/treasures/${card.id}/use`, {
-      spaceId: currentSpace.value?.id
-    })
-    
-    // 更新状态
-    energy.value = res.data.energy
-    showCardSelection.value = false
-    
-    // 如果有新宝物
-    if (res.data.newTreasure) {
-      currentTreasure.value = res.data.newTreasure
-    }
-  } catch (error) {
-    console.error('使用卡牌失败:', error)
-  }
+// 执行行动方法
+function takeAction(actionType) {
+  // 这里添加实际的行动逻辑
+  console.log(`执行${actionType}行动`);
+}
+
+// 使用卡牌方法
+function useCard(card) {
+  // 这里添加使用卡牌的逻辑
+  console.log(`使用卡牌: ${card.name}`);
+  showCardSelection.value = false;
 }
 
 // 提交自定义行动
-const submitCustomAction = async () => {
-  if (!customMessage.value.trim()) return
-  
-  try {
-    const res = await axios.post('/api/game/actions/custom', {
-      message: customMessage.value,
-      spaceId: currentSpace.value?.id
-    })
-    
-    // 更新对话历史
-    currentReplies.value.push(res.data.newReply)
-    customMessage.value = ''
-  } catch (error) {
-    console.error('提交自定义行动失败:', error)
-  }
+function submitCustomAction() {
+  // 这里添加提交逻辑
+  console.log('提交自定义行动:', customMessage.value);
 }
-
-onMounted(() => {
-  loadInitialData()
-  
-  // 初始化体力恢复计时器
-  setInterval(() => {
-    if (energy.value < 100) {
-      energy.value = Math.min(energy.value + 1, 100)
-    }
-  }, 60000) // 每分钟恢复1点体力
-})
 </script>
 
 <style scoped>
-.game-container {
-  display: flex;
-  height: 100vh;
-}
-
-.main-content {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  transition: all 0.3s ease;
-}
-
-.space-list-view {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.space-detail-view {
-  max-width: 800px;
-  margin: 0 auto;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.back-button {
-  margin-bottom: 20px;
-  padding: 8px 16px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.back-button:hover {
-  background: #2563eb;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* 移动端专用样式 */
+@media (max-width: 768px) {
+  .game-container {
+    flex-direction: column;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  
+  .space-list {
+    flex: 0 0 auto;
+    overflow-x: auto;
+    white-space: nowrap;
   }
-}
-
-.space-list {
-  border-right: 1px solid #eee;
-  padding-right: 10px;
-}
-
-.space-category {
-  margin-bottom: 20px;
-}
-
-.space-item {
-  padding: 10px;
-  margin: 5px 0;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.space-item:hover {
-  background-color: #f5f5f5;
-}
-
-.main-content {
-  overflow-y: auto;
-}
-
-.space-detail {
-  padding: 10px;
-}
-
-.conversation-history {
-  margin-top: 20px;
-}
-
-.reply {
-  margin-bottom: 15px;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-}
-
-.status-panel {
-  border-left: 1px solid #eee;
-  padding-left: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.treasure-area {
-  text-align: center;
-}
-
-.treasure-image {
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
-}
-
-.identify-btn {
-  margin-top: 10px;
-  padding: 5px 10px;
-}
-
-.status-area {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.status-item {
-  display: flex;
-  justify-content: space-between;
-}
-
-.action-area {
-  margin-top: auto;
-}
-
-.action-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.action-buttons button {
-  padding: 8px;
-}
-
-.card-selection {
-  max-height: 200px;
-  overflow-y: auto;
-  margin-bottom: 10px;
-}
-
-.card-item {
-  padding: 8px;
-  margin: 3px 0;
-  cursor: pointer;
-}
-
-.card-item:hover {
-  background-color: #f5f5f5;
-}
-
-.custom-action {
-  display: flex;
-  gap: 5px;
-}
-
-.custom-action input {
-  flex: 1;
-  padding: 8px;
+  
+  .space-detail {
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+  
+  .action-panel {
+    flex-direction: column;
+    padding: 10px;
+  }
+  
+  .card-display {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
 }
 </style>
