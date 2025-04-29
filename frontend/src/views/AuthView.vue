@@ -75,57 +75,48 @@ const validateForm = () => {
 }
 
 const handleAuth = async () => {
-  if (!validateForm()) return // 调用 validateForm 验证表单
-
-  const url = isLogin.value ? `${apiBaseUrl}/api/auth/token` : `${apiBaseUrl}/api/auth/register`
-  const body = isLogin.value
-    ? { 
-        username: username.value, 
-        password: password.value 
-      }
-    : { 
-        username: username.value, 
-        email: email.value, 
-        password: password.value 
-      }
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/auth/${isLogin.value ? 'login' : 'register'}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',  // 允许发送凭据信息
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value,
+        email: isLogin.value ? undefined : email.value
       })
+    });
 
-      if (response.ok) {
-        if (isLogin.value) {
-          const data = await response.json()
-          if (data.access_token) {
-            localStorage.setItem('auth_token', data.access_token)
-            router.push('/')
-          } else {
-            throw new Error('无效的响应格式')
-          }
+    if (response.ok) {
+      if (isLogin.value) {
+        const data = await response.json()
+        if (data.access_token) {
+          localStorage.setItem('auth_token', data.access_token)
+          router.push('/')
         } else {
-          alert('注册成功，请登录')
-          toggleAuthMode('login')
+          throw new Error('无效的响应格式')
         }
       } else {
-        const errorText = await response.text()
-        console.error('请求失败详情:', errorText)
-        try {
-          const error = JSON.parse(errorText)
-          alert(`操作失败: ${error.detail || error.message || '未知错误'}`)
-        } catch {
-          alert(`操作失败: ${response.status} ${response.statusText}`)
-        }
+        alert('注册成功，请登录')
+        toggleAuthMode('login')
       }
-    } catch (error) {
-      console.error('请求失败:', error)
-      alert(`网络错误: ${error.message}`)
+    } else {
+      const errorText = await response.text()
+      console.error('请求失败详情:', errorText)
+      try {
+        const error = JSON.parse(errorText)
+        alert(`操作失败: ${error.detail || error.message || '未知错误'}`)
+      } catch {
+        alert(`操作失败: ${response.status} ${response.statusText}`)
+      }
+    }
+  } catch (error) {
+    console.error('请求失败:', error);
+    alert('网络请求失败，请检查服务是否正常运行');
   }
-}
+};
 </script>
 
 <style scoped>

@@ -41,10 +41,11 @@ app = FastAPI(
 # 配置CORS中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 开发环境允许所有源，生产环境应限制
+    allow_origins=["*"],  # 允许所有地址
     allow_credentials=True,  # 允许携带凭据
     allow_methods=["*"],  # 允许所有HTTP方法
     allow_headers=["*"],  # 允许所有请求头
+    expose_headers=["*"]  # 新增：暴露所有响应头
 )
 
 # 挂载API路由到/api路径下
