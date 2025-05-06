@@ -6,7 +6,8 @@
       <router-link to="/rule">规则</router-link>
     </div>
     <div class="right-section">
-      <router-link v-if="!isLoggedIn" to="/auth">登录/注册</router-link>
+      <router-link v-if="!isLoggedIn" :to="{ path: '/auth', query: { mode: 'login' } }">登录</router-link>
+      <router-link v-if="!isLoggedIn" :to="{ path: '/auth', query: { mode: 'register' } }">注册</router-link>
       <div v-else class="user-info">
         <span>{{ username }}</span>
         <button @click="logout">退出</button>

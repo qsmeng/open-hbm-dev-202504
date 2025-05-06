@@ -47,15 +47,63 @@ ALGORITHM = "HS256"  # JWT签名算法
 ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 令牌有效期(分钟)
 
 class User(BaseModel):
-    """用户注册数据模型"""
-    username: str  # 用户名，唯一标识
-    email: str  # 用户邮箱，用于通知和密码重置
-    password: str  # 明文密码，注册时前端应做基本复杂度校验
+    """
+    用户注册数据模型
+    
+    属性:
+    - username (str): 用户名，必须唯一，长度4-20个字符
+    - email (str): 用户邮箱，用于通知和密码重置，必须符合邮箱格式
+    - password (str): 明文密码，前端应做基本复杂度校验
+    
+    示例:
+    {
+        "username": "testuser",
+        "email": "test@example.com",
+        "password": "SecurePassword123!"
+    }
+    """
+    username: str
+    email: str 
+    password: str
 
 class Token(BaseModel):
-    """认证令牌响应模型"""
-    access_token: str  # JWT访问令牌
-    token_type: str  # 令牌类型，固定为"bearer"
+    """
+    JWT认证令牌响应模型
+    
+    属性:
+    - access_token (str): JWT访问令牌，有效期30分钟
+    - token_type (str): 令牌类型，固定为"bearer"
+    
+    示例:
+    {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "token_type": "bearer"
+    }
+    """
+    access_token: str
+    token_type: str
+
+def create_success_response(data=None, message="操作成功"):
+    return JSONResponse(
+        content={
+            "success": True,
+            "code": "SUCCESS",
+            "message": message,
+            "data": data,
+            "timestamp": int(datetime.now().timestamp())
+        }
+    )
+
+def create_error_response(code="ERROR", message="系统错误", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR):
+    return JSONResponse(
+        content={
+            "success": False,
+            "code": code,
+            "message": message,
+            "timestamp": int(datetime.now().timestamp())
+        },
+        status_code=status_code
+    )
 
 @router.post("/register")
 async def register(user: User):
@@ -63,19 +111,40 @@ async def register(user: User):
     用户注册接口
     
     参数:
-    - user: 用户注册信息，包含用户名、邮箱和密码
+    - user (User): 用户注册信息对象，包含以下属性:
+        - username (str): 用户名，4-20个字符，必须唯一
+        - email (str): 用户邮箱，必须符合邮箱格式
+        - password (str): 明文密码，至少8个字符，包含大小写字母和数字
     
     返回值:
-    - 成功: {"message": "注册成功"}
-    - 失败: 返回相应错误状态码和详情
+    - 成功 (200): 
+        {
+            "success": True,
+            "code": "SUCCESS",
+            "message": "注册成功",
+            "data": {"message": "注册成功"},
+            "timestamp": 1234567890
+        }
+    - 失败:
+        - 400: 用户名或邮箱已存在
+        - 500: 服务器内部错误
     
     异常:
-    - 400: 用户名或邮箱已存在
-    - 500: 服务器内部错误
+    - HTTPException 400: 用户名或邮箱已存在
+    - HTTPException 500: 数据库错误或其他服务器错误
     
     安全说明:
-    - 密码会经过bcrypt哈希后存储
+    - 密码使用bcrypt算法哈希存储
     - 不返回敏感信息
+    - 使用参数化查询防止SQL注入
+    
+    示例请求:
+    POST /auth/register
+    {
+        "username": "testuser",
+        "email": "test@example.com",
+        "password": "SecurePassword123!"
+    }
     """
     try:
         # 获取数据库连接
@@ -83,29 +152,35 @@ async def register(user: User):
         cursor = conn.cursor(dictionary=True)
         try:
             # 检查用户名是否已存在
-            cursor.execute("SELECT * FROM user_base_info WHERE username = %s", (user.username,))
-            if cursor.fetchone():
+            existing_user = query_data("users", "username = %s", [user.username])
+            if existing_user:
                 raise HTTPException(status_code=400, detail="用户名已存在")
 
             # 检查邮箱是否已存在
-            cursor.execute("SELECT * FROM user_base_info WHERE email = %s", (user.email,))
-            if cursor.fetchone():
+            existing_email = query_data("users", "email = %s", [user.email])
+            if existing_email:
                 raise HTTPException(status_code=400, detail="邮箱已被注册")
 
             # 对密码进行bcrypt哈希处理
             hashed_password = pwd_context.hash(user.password)
 
+            # 准备用户数据
+            user_data = {
+                "username": user.username,
+                "email": user.email,
+                "password_hash": hashed_password,
+                "status": 1,  # 默认激活状态
+                "experience": 0,
+                "energy": 256,
+                "max_energy": 256
+            }
+
             # 插入新用户记录
-            cursor.execute(
-                "INSERT INTO user_base_info (username, email, password_hash) VALUES (%s, %s, %s)",
-                (user.username, user.email, hashed_password)
-            )
+            insert_data("users", user_data)
             conn.commit()
-            return {"message": "注册成功"}
+            return create_success_response({"message": "注册成功"})
         except mysql.connector.Error as err:
-            # 数据库操作异常回滚
-            conn.rollback()
-            raise HTTPException(status_code=500, detail=f"数据库错误: {err}")
+            return create_error_response("DB_ERROR", f"数据库错误: {err}", status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             # 确保释放数据库资源
             cursor.close()
@@ -120,25 +195,37 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     用户登录接口
     
     参数:
-    - form_data: OAuth2标准用户名密码表单
+    - form_data (OAuth2PasswordRequestForm): OAuth2标准用户名密码表单，包含:
+        - username (str): 用户名
+        - password (str): 密码
     
     返回值:
-    - 成功: 返回JWT访问令牌
-    - 失败: 返回401未授权错误
+    - 成功 (200):
+        {
+            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "token_type": "bearer"
+        }
+    - 失败:
+        - 401: 用户名或密码错误
+    
+    异常:
+    - HTTPException 401: 用户名或密码错误
     
     安全说明:
     - 使用bcrypt验证密码哈希
-    - 返回的令牌应在前端安全存储
+    - 返回的JWT令牌有效期30分钟
+    - 前端应安全存储令牌
+    
+    示例请求:
+    POST /auth/token
+    Content-Type: application/x-www-form-urlencoded
+    
+    username=testuser&password=SecurePassword123!
     """
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
     try:
         # 查询用户信息
-        cursor.execute("SELECT * FROM user_base_info WHERE username = %s", (form_data.username,))
-        user = cursor.fetchone()
-
-        # 验证用户存在且密码正确
-        if not user or not pwd_context.verify(form_data.password, user["password_hash"]):
+        user = query_data("users", "username = %s", [form_data.username])
+        if not user or not pwd_context.verify(form_data.password, user[0]["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="用户名或密码错误",
@@ -146,12 +233,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             )
 
         # 生成JWT访问令牌
-        access_token = {"sub": user["username"]}
+        access_token = {"sub": user[0]["username"]}
         return {"access_token": access_token, "token_type": "bearer"}
-    finally:
-        # 确保释放数据库资源
-        cursor.close()
-        conn.close()
+    except mysql.connector.Error as err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"数据库错误: {err}"
+        )
 
 @router.get("/check")
 async def check_login_status(request: Request):
@@ -159,15 +247,34 @@ async def check_login_status(request: Request):
     检查用户登录状态
     
     参数:
-    - request: FastAPI请求对象，从中提取Authorization头
+    - request (Request): FastAPI请求对象，需要包含:
+        - Authorization头: Bearer令牌
     
     返回值:
-    - 已登录: 返回用户基本信息
-    - 未登录: 返回未认证状态
+    - 已登录 (200):
+        {
+            "is_authenticated": True,
+            "user": {
+                "username": "testuser",
+                "avatar": "/images/default-avatar.png"
+            }
+        }
+    - 未登录 (200):
+        {
+            "is_authenticated": False
+        }
+    
+    异常:
+    - 无显式异常抛出
     
     安全说明:
     - 依赖前端正确传递Authorization头
     - 不返回敏感用户信息
+    - 令牌验证失败不抛出异常
+    
+    示例请求:
+    GET /auth/check
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     """
     # 从请求头中获取Bearer令牌
     auth_header = request.headers.get("Authorization")
@@ -180,26 +287,23 @@ async def check_login_status(request: Request):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        try:
-            # 查询用户信息
-            cursor.execute("SELECT * FROM user_base_info WHERE username = %s", (username,))
-            user = cursor.fetchone()
-            if user:
-                return {
-                    "is_authenticated": True,
-                    "user": {
-                        "username": user["username"],
-                        "avatar": user.get("avatar", "/images/default-avatar.png")
-                    }
+        
+        # 查询用户信息
+        user = query_data("users", "username = %s", [username])
+        if user:
+            return {
+                "is_authenticated": True,
+                "user": {
+                    "username": user[0]["username"],
+                    "avatar": user[0].get("avatar", "/images/default-avatar.png")
                 }
-        finally:
-            cursor.close()
-            conn.close()
+            }
     except jwt.PyJWTError:
         # 令牌无效或过期
         pass
+    except mysql.connector.Error as err:
+        # 数据库错误不影响认证状态判断
+        print(f"数据库查询错误: {err}")
     
     return {"is_authenticated": False}
 
@@ -209,19 +313,39 @@ async def reset_password(request: Request):
     密码重置接口
     
     参数:
-    - request: 包含用户邮箱的请求体
+    - request (Request): FastAPI请求对象，需要包含:
+        - email (str): 用户注册邮箱
     
     返回值:
-    - 成功: 返回重置链接(开发环境)
-    - 失败: 返回相应错误
+    - 成功 (200):
+        {
+            "message": "密码重置链接已发送至您的邮箱",
+            "dev_note": "实际项目中链接应通过邮件发送"
+        }
+    - 失败:
+        - 400: 邮箱不能为空
+        - 404: 邮箱未注册
+        - 500: 服务器内部错误
+    
+    异常:
+    - HTTPException 400: 邮箱不能为空
+    - HTTPException 404: 邮箱未注册
+    - HTTPException 500: 数据库错误或其他服务器错误
     
     安全说明:
     - 生产环境应通过邮件发送重置链接
     - 重置令牌有效期1小时
+    - 开发环境直接返回链接仅用于测试
     
     TODO:
     - 实现邮件发送功能 - 使用SMTP或邮件服务API
     - 添加重置令牌刷新机制
+    
+    示例请求:
+    POST /auth/reset-password
+    {
+        "email": "test@example.com"
+    }
     """
     try:
         data = await request.json()

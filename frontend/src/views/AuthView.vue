@@ -41,11 +41,12 @@
 <script setup>
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 
-const authMode = ref('login') // 'login' | 'register' | 'forgot'
+const route = useRoute()
+const authMode = ref(route.query.mode || 'login') // 'login' | 'register' | 'forgot'
 const username = ref('')
 const email = ref('')
 const password = ref('')
@@ -53,7 +54,7 @@ const confirmPassword = ref('')
 const router = useRouter()
 
 // 动态获取 API 基础路径
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/'
 
 const isLogin = computed(() => authMode.value === 'login')
 const isRegister = computed(() => authMode.value === 'register')
@@ -63,8 +64,17 @@ const toggleAuthMode = () => {
 }
 
 // 处理忘记密码
-const handleForgotPassword = () => {
-  router.push('/reset-password')
+const handleForgotPassword = async () => {
+  const email = prompt('请输入注册邮箱')
+  if (!email) return
+  
+  try {
+    await axios.post(`${apiBaseUrl}/auth/reset-password`, { email })
+    alert('密码重置链接已发送至您的邮箱')
+  } catch (error) {
+    console.error('密码重置失败:', error)
+    alert(error.response?.data?.detail || '密码重置请求失败')
+  }
 }
 
 // 表单验证
@@ -88,16 +98,24 @@ const handleAuth = async () => {
   }
 
   try {
-    const response = await axios.post(`${apiBaseUrl}/api/auth/${endpoint}`, payload, {
-      withCredentials: true
-    })
-
+    let response;
     if (isLogin.value) {
-      localStorage.setItem('auth_token', response.data.access_token)
-      router.push('/')
+      const formData = new FormData();
+      formData.append('username', username.value);
+      formData.append('password', password.value);
+      response = await axios.post(`${apiBaseUrl}/auth/token`, formData);
+      
+      // 存储JWT令牌
+      localStorage.setItem('auth_token', response.data.access_token);
+      router.push('/');
     } else {
-      alert('注册成功，请登录')
-      toggleAuthMode()
+      response = await axios.post(`${apiBaseUrl}/auth/register`, {
+        username: username.value,
+        email: email.value,
+        password: password.value
+      });
+      alert('注册成功，请登录');
+      toggleAuthMode();
     }
   } catch (error) {
     console.error('请求失败:', error)

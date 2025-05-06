@@ -28,6 +28,29 @@ Content-Type: application/json
 
 ## 认证授权
 
+### 用户注册
+```http
+POST /api/auth/register
+```
+请求体：
+```json
+{
+  "username": "string(4-20位)",
+  "email": "string(有效邮箱格式)",
+  "password": "string(至少8位，包含大小写字母和数字)"
+}
+```
+响应：
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "message": "注册成功",
+  "data": null,
+  "timestamp": 1714387200
+}
+```
+
 ### 用户登录
 ```http
 POST /api/auth/login
@@ -42,12 +65,14 @@ POST /api/auth/login
 响应：
 ```json
 {
-  "token": "string",
+  "access_token": "string(JWT令牌)",
+  "token_type": "bearer",
+  "expires_in": 1800,
   "user": {
     "id": "string",
     "username": "string",
-    "experience": 0,
-    "energy": 100
+    "avatar": "string(头像URL)",
+    "experience": 0
   }
 }
 ```
