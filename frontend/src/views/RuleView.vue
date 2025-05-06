@@ -31,10 +31,12 @@
     </section>
     </div>
   </div>
+  <Footer />
 </template>
 
 <script setup>
 import Header from '@/components/Header.vue'
+import Footer from '@/components/Footer.vue'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 </script>

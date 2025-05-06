@@ -12,17 +12,18 @@
 <style scoped>
 .app-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: center; /* 修改为居中对齐 */
+  flex-direction: column;
   align-items: center;
   padding: 1rem;
   background-color: #f5f5f5;
   border-top: 1px solid #ddd;
+  width: 100%; /* 确保占据全宽 */
 }
 
 .footer-links {
   display: flex;
   gap: 1rem;
+  margin-top: 0.5rem;
 }
-
-/* 其他样式... */
 </style>
