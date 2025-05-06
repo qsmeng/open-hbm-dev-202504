@@ -63,7 +63,7 @@
       <!-- 宝物区 -->
       <div class="treasure-area">
         <div v-if="currentTreasure && currentTreasure.identified" class="treasure-identified">
-          <img :src="currentTreasure.image" alt="宝物" class="treasure-image">
+          <img v-lazy="currentTreasure.image" alt="宝物" class="treasure-image">
           <h3>{{ currentTreasure.name }}</h3>
           <div class="treasure-stats">
             <div>强度: {{ currentTreasure.strength }}/256</div>
@@ -71,7 +71,7 @@
           </div>
         </div>
         <div v-else class="treasure-unidentified">
-          <img src="@/assets/images/defcard.png" alt="未鉴定宝物" class="treasure-image">
+          <img v-lazy="'@/assets/images/defcard.png'" alt="未鉴定宝物" class="treasure-image">
           <button @click="identifyTreasure" class="identify-btn">鉴定宝物</button>
         </div>
       </div>
