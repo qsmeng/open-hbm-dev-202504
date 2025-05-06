@@ -1,7 +1,6 @@
 """
 用户认证模块
 ============
-
 提供用户注册、登录、认证状态检查和密码重置等核心认证功能。
 
 功能说明：
@@ -29,12 +28,7 @@ from pydantic import BaseModel
 from passlib.context import CryptContext
 import jwt
 import mysql.connector
-from backend.database.hbm_mysql import (
-    get_db_connection,
-    query_data,
-    insert_data,
-    upsert_data
-)
+from backend.database.hbm_mysql import DBOperator
 
 # 认证路由，所有认证相关API都挂载在此路由下
 router = APIRouter(
@@ -151,44 +145,33 @@ async def register(user: User):
     }
     """
     try:
-        # 获取数据库连接
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        try:
-            # 检查用户名是否已存在
-            existing_user = query_data("users", "username = %s", [user.username])
-            if existing_user:
-                raise HTTPException(status_code=400, detail="用户名已存在")
+        # 检查用户名是否已存在
+        existing_user = DBOperator.get_one("users", username=user.username)
+        if existing_user:
+            raise HTTPException(status_code=400, detail="用户名已存在")
 
-            # 检查邮箱是否已存在
-            existing_email = query_data("users", "email = %s", [user.email])
-            if existing_email:
-                raise HTTPException(status_code=400, detail="邮箱已被注册")
+        # 检查邮箱是否已存在
+        existing_email = DBOperator.get_one("users", email=user.email)
+        if existing_email:
+            raise HTTPException(status_code=400, detail="邮箱已被注册")
 
-            # 对密码进行bcrypt哈希处理
-            hashed_password = pwd_context.hash(user.password)
+        # 对密码进行bcrypt哈希处理
+        hashed_password = pwd_context.hash(user.password)
 
-            # 准备用户数据
-            user_data = {
-                "username": user.username,
-                "email": user.email,
-                "password_hash": hashed_password,
-                "status": 1,  # 默认激活状态
-                "experience": 0,
-                "energy": 256,
-                "max_energy": 256
-            }
+        # 准备用户数据
+        user_data = {
+            "username": user.username,
+            "email": user.email,
+            "password_hash": hashed_password,
+            "status": 1,  # 默认激活状态
+            "experience": 0,
+            "energy": 256,
+            "max_energy": 256
+        }
 
-            # 插入新用户记录
-            insert_data("users", user_data)
-            conn.commit()
-            return create_success_response({"message": "注册成功"})
-        except mysql.connector.Error as err:
-            return create_error_response("DB_ERROR", f"数据库错误: {err}", status.HTTP_500_INTERNAL_SERVER_ERROR)
-        finally:
-            # 确保释放数据库资源
-            cursor.close()
-            conn.close()
+        # 创建新用户
+        DBOperator.create("users", **user_data)
+        return create_success_response({"message": "注册成功"})
     except Exception as e:
         # 捕获未处理异常
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
@@ -228,8 +211,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """
     try:
         # 查询用户信息
-        user = query_data("users", "username = %s", [form_data.username])
-        if not user or not pwd_context.verify(form_data.password, user[0]["password_hash"]):
+        user = DBOperator.get_one("users", username=form_data.username)
+        if not user or not pwd_context.verify(form_data.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="用户名或密码错误",
@@ -237,7 +220,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             )
 
         # 生成JWT访问令牌
-        access_token = {"sub": user[0]["username"]}
+        access_token = {"sub": user.username}
         return {"access_token": access_token, "token_type": "bearer"}
     except mysql.connector.Error as err:
         raise HTTPException(
@@ -293,13 +276,13 @@ async def check_login_status(request: Request):
         username = payload.get("sub")
         
         # 查询用户信息
-        user = query_data("users", "username = %s", [username])
+        user = DBOperator.get_one("users", username=username)
         if user:
             return {
                 "is_authenticated": True,
                 "user": {
-                    "username": user[0]["username"],
-                    "avatar": user[0].get("avatar", "/images/default-avatar.png")
+                    "username": user.username,
+                    "avatar": user.avatar if hasattr(user, 'avatar') else "/images/default-avatar.png"
                 }
             }
     except jwt.PyJWTError:
@@ -359,14 +342,14 @@ async def reset_password(request: Request):
         
         try:
             # 检查邮箱是否存在
-            user = query_data("users", "email = %s", [email])
+            user = DBOperator.get_one("users", email=email)
             if not user:
                 raise HTTPException(status_code=404, detail="邮箱未注册")
             
             # 生成带过期时间的重置令牌
             reset_token = jwt.encode(
                 {
-                    "sub": user[0]["username"],
+                    "sub": user.username,
                     "exp": datetime.utcnow() + timedelta(hours=1),
                     "purpose": "password_reset"
                 },
@@ -388,3 +371,15 @@ async def reset_password(request: Request):
             raise HTTPException(status_code=500, detail=f"数据库错误: {err}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
+    
+def send_email(to, subject, content):
+    """模拟邮件发送"""
+    print(f"模拟发送邮件到 {to}: {subject}")
+    return True
+
+class SimpleRateLimiter:
+    """简单速率限制器"""
+    def check(self):
+        return True
+
+rate_limiter = SimpleRateLimiter()
