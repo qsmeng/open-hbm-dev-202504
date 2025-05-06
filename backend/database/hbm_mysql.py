@@ -30,6 +30,15 @@ import time
 import os
 import mysql.connector.pooling
 
+def check_tables_exist(connection):
+    """检查必要表是否存在"""
+    required_tables = {'users', 'spaces', 'replies', 'treasures'}
+    cursor = connection.cursor()
+    cursor.execute("SHOW TABLES")
+    existing_tables = {table[0] for table in cursor.fetchall()}
+    cursor.close()
+    return required_tables.issubset(existing_tables)
+
 def get_db_pool():
     """
     创建并返回MySQL数据库连接池
@@ -43,25 +52,43 @@ def get_db_pool():
     配置说明:
     - 连接池大小固定为20
     - 连接信息从环境变量读取
+    - 首次连接时检查表结构
     """
     try:
-        # 从环境变量中获取MySQL连接信息
-        local_mysql_url = os.getenv('LOCAL_MYSQL_URL', 'localhost:3306')
-        host, port = local_mysql_url.split(':') if ':' in local_mysql_url else (local_mysql_url, '3306')
+        # 从环境变量中获取MySQL连接信息，使用服务名作为默认主机
+        host = os.getenv('MYSQL_HOST', 'mysql')  # 使用服务名
+        port = os.getenv('MYSQL_PORT', '3306')
+        user = os.getenv('MYSQL_USER', 'hbm_user')  # 添加默认值
+        password = os.getenv('MYSQL_PASSWORD', '') 
+        database = os.getenv('MYSQL_DATABASE', 'hbm_db')
+        
+        if not all([host, port, user, database]):
+            raise ValueError("缺少必要的数据库连接参数，请检查环境变量配置")
+            
+        print(f"正在连接数据库: mysql://{user}@{host}:{port}/{database}")  # 调试日志
         
         # 连接池配置
         config = {
             'host': host,
             'port': port,
-            'user': os.getenv('MYSQL_USER'),
-            'password': os.getenv('MYSQL_PASSWORD'),
-            'database': os.getenv('MYSQL_DATABASE'),
+            'user': user,
+            'password': password,
+            'database': database,
             'pool_name': 'hbm_mysql_pool',
-            'pool_size': 20  # 固定连接池大小
+            'pool_size': 20
         }
+        
+        # 测试连接并检查表结构
+        test_conn = mysql.connector.connect(**{k:v for k,v in config.items() if k != 'pool_name'})
+        try:
+            if not check_tables_exist(test_conn):
+                print("警告: 缺少必要的数据库表，请运行初始化脚本")
+        finally:
+            test_conn.close()
+            
         return mysql.connector.pooling.MySQLConnectionPool(**config)
     except Exception as e:
-        print(f"Error creating database connection pool: {e}")
+        print(f"数据库连接失败: {e}")
         raise
 
 def get_db_connection(retries=5, delay=5):

@@ -29,8 +29,15 @@ services:
     volumes:
       - ../:/app
     working_dir: /app
+    environment:
+      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
     command: >
       sh -c "
+      chmod 600 /app/.env;
       pip install --no-cache-dir -r requirements.txt; 
       uvicorn backend.app:app --reload
       "
@@ -67,6 +74,10 @@ services:
 
   mysql:
     image: mysql:8.0.31
+    volumes:
+      - ../database/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ../database/mysql/hbm_mysql_init.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - hbm_mysql_data_volume:/var/lib/mysql
     container_name: mysql
     restart: always
     environment:
@@ -74,16 +85,21 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_HOST: ${MYSQL_HOST:-localhost}
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}  # 使用服务名作为默认主机
       MYSQL_PORT: ${MYSQL_PORT:-3306}
+    command: >
+      sh -c "
+      chmod 644 /etc/mysql/conf.d/my.cnf;
+      exec docker-entrypoint.sh mysqld
+      "
     ports:
       - "3306:3306"
-    volumes:
-      - ../database/mysql/hbm_mysql_init.sql:/docker-entrypoint-initdb.d/init-db.sql
-      - ../database/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-      - hbm_mysql_data_volume:/var/lib/mysql
+
     networks:
-      - app-network
+      app-network:
+        aliases:
+          - db  # 添加db别名
+          - mysql
 
   redis:
     image: redis:7.0
