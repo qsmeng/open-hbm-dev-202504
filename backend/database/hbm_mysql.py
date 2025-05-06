@@ -75,7 +75,11 @@ def get_db_pool():
             'password': password,
             'database': database,
             'pool_name': 'hbm_mysql_pool',
-            'pool_size': 20
+            'pool_size': 15,
+            'auth_plugin': 'mysql_native_password',
+            'connect_timeout': 30,
+            'pool_reset_session': True,
+            'raise_on_warnings': True
         }
         
         # 测试连接并检查表结构
