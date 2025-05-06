@@ -29,11 +29,15 @@ from pydantic import BaseModel
 from passlib.context import CryptContext
 import jwt
 import mysql.connector
-from backend.database.hbm_mysql import get_db_connection
+from backend.database.hbm_mysql import (
+    get_db_connection,
+    query_data,
+    insert_data,
+    upsert_data
+)
 
 # 认证路由，所有认证相关API都挂载在此路由下
 router = APIRouter(
-    prefix="/auth",
     tags=["authentication"],
     responses={401: {"description": "未授权或认证失败"}}
 )
@@ -353,19 +357,16 @@ async def reset_password(request: Request):
         if not email:
             raise HTTPException(status_code=400, detail="邮箱不能为空")
         
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
         try:
             # 检查邮箱是否存在
-            cursor.execute("SELECT * FROM user_base_info WHERE email = %s", (email,))
-            user = cursor.fetchone()
+            user = query_data("users", "email = %s", [email])
             if not user:
                 raise HTTPException(status_code=404, detail="邮箱未注册")
             
             # 生成带过期时间的重置令牌
             reset_token = jwt.encode(
                 {
-                    "sub": user["username"],
+                    "sub": user[0]["username"],
                     "exp": datetime.utcnow() + timedelta(hours=1),
                     "purpose": "password_reset"
                 },
@@ -385,8 +386,5 @@ async def reset_password(request: Request):
             }
         except mysql.connector.Error as err:
             raise HTTPException(status_code=500, detail=f"数据库错误: {err}")
-        finally:
-            cursor.close()
-            conn.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")

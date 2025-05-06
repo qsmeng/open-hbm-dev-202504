@@ -18,15 +18,24 @@ API路由主入口模块
 """
 
 from fastapi import APIRouter
+import logging
 from .modules.auth import router as auth_router
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 主路由实例，所有API路由都将挂载在此路由下
 router = APIRouter()
 
-# 注册认证路由到/api/auth路径
-# 所有/auth开头的请求将由auth_router处理
+# 注册认证路由
+logger.info("Registering auth routes...")
 router.include_router(
     auth_router,
-    prefix="/auth",  # 路由前缀
-    tags=["auth"]    # OpenAPI分组标签
+    prefix="/auth",  # 前缀已在app.py中设置
+    tags=["auth"]
 )
+
+# 调试路由信息
+for route in auth_router.routes:
+    logger.info(f"Auth route registered: {route.path}")

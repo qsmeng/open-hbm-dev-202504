@@ -52,6 +52,7 @@ app.add_middleware(
 app.include_router(
     api_router,
     prefix="/api",  # 路由前缀
+    tags=["api"]
 )
 
 @app.middleware("http")
