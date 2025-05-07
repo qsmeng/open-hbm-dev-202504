@@ -14,7 +14,7 @@ services:
     volumes:
       - ollama_model_data_volume:/root/.ollama/models
     environment:
-      - OLLAMA_HOST=${OLLAMA_URL}
+      - OLLAMA_HOST=${OLLAMA_URL:-localhost:11434}
       - OLLAMA_MODEL_NAME=${OLLAMA_MODEL_NAME}
     entrypoint: ["/bin/sh", "-c", "ollama serve;ollama pull deepseek-r1:1.5b"]
     networks:
@@ -29,15 +29,8 @@ services:
     volumes:
       - ../:/app
     working_dir: /app
-    environment:
-      - MYSQL_HOST=${MYSQL_HOST:-mysql}
-      - MYSQL_PORT=${MYSQL_PORT:-3306}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
     command: >
       sh -c "
-      chmod 600 /app/.env;
       pip install --no-cache-dir -r requirements.txt; 
       uvicorn backend.app:app --reload
       "
@@ -81,11 +74,11 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_HOST: ${MYSQL_HOST:-mysql}  # 使用服务名作为默认主机
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-hbm_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hbm_db}
+      MYSQL_USER: ${MYSQL_USER:-hbm_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hbm_password}
+      MYSQL_HOST: ${MYSQL_HOST:-localhost}
       MYSQL_PORT: ${MYSQL_PORT:-3306}
     command: >
       sh -c "
@@ -96,10 +89,7 @@ services:
       - "3306:3306"
 
     networks:
-      app-network:
-        aliases:
-          - db  # 添加db别名
-          - mysql
+      - app-network
 
   redis:
     image: redis:7.0

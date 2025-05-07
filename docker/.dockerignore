@@ -5,6 +5,7 @@
 !database/mysql/hbm_mysql_init.sql
 !conf/**/*.conf
 !backend/requirements.txt
+!.env*
 
 ### 通用忽略规则 ###
 # 系统文件
@@ -36,12 +37,6 @@ lerna-debug.log*
 *.njsproj
 *.sln
 
-# 本地环境配置
-.env.*
-!.env
-!.env.example
-local.properties
-
 ### 语言/框架特定忽略 ###
 # Python
 __pycache__/
@@ -50,7 +45,6 @@ __pycache__/
 .pytest_cache/
 venv/
 .venv/
-env/
 
 # Node.js
 node_modules/
@@ -66,7 +60,7 @@ out/
 coverage/
 .nyc_output/
 /cypress/videos/
-/cypress/screenshots/
+/cypress/screenshots/ 
 
 # 移动开发
 # iOS
