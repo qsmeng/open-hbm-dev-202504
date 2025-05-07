@@ -29,6 +29,14 @@ services:
     volumes:
       - ../:/app
     working_dir: /app
+    env_file:
+      - ../.env
+    environment:
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-hbm_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hbm_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hbm_db}
     command: >
       sh -c "
       pip install --no-cache-dir -r requirements.txt; 

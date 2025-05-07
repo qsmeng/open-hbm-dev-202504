@@ -11,10 +11,18 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.exc import SQLAlchemyError
 import os
 
-# 数据库配置
+# 数据库配置(从环境变量获取，带默认值)
+DB_CONFIG = {
+    'host': os.getenv('MYSQL_HOST', 'mysql'),
+    'port': os.getenv('MYSQL_PORT', '3306'),
+    'user': os.getenv('MYSQL_USER', 'hbm_user'),
+    'password': os.getenv('MYSQL_PASSWORD', 'hbm_password'),
+    'database': os.getenv('MYSQL_DATABASE', 'hbm_db')
+}
+
 DATABASE_URL = (
-    f"mysql+mysqlconnector://{os.getenv('MYSQL_USER')}:{os.getenv('MYSQL_PASSWORD')}@"
-    f"{os.getenv('MYSQL_HOST')}:{os.getenv('MYSQL_PORT')}/{os.getenv('MYSQL_DATABASE')}"
+    f"mysql+mysqlconnector://{DB_CONFIG['user']}:{DB_CONFIG['password']}@"
+    f"{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
 )
 
 # 创建引擎和会话工厂

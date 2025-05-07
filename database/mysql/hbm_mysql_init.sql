@@ -1,3 +1,8 @@
+-- 创建数据库用户(与docker-compose环境变量一致)
+CREATE USER IF NOT EXISTS 'hbm_user'@'%' IDENTIFIED BY 'hbm_password';
+GRANT ALL PRIVILEGES ON hbm_db.* TO 'hbm_user'@'%';
+FLUSH PRIVILEGES;
+
 -- 服务器配置表
 CREATE TABLE server_configs (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT '配置ID',

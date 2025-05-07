@@ -5,6 +5,7 @@ uvicorn>=0.15.0
 pydantic>=1.8.0
 bcrypt>=3.2.0
 mysql-connector-python>=8.0.31
+sqlalchemy>=2.0.0
 langchain>=0.3.22
 langchain-ollama>=0.3.0
 passlib>=1.7.4
