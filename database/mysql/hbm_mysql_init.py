@@ -17,7 +17,15 @@ import time
 import os
 
 def to_init_sql():
-    """生成数据库初始化SQL文件"""
+    """生成数据库初始化SQL文件
+    
+    根据SQLAlchemy模型定义生成符合最新标准的SQL初始化脚本
+    生成内容包括:
+    - 数据库用户创建
+    - 表结构定义(包含注释)
+    - 索引和外键约束
+    - 示例数据
+    """
     timestamp = time.strftime("%Y%m%d%H%M%S")
     file_path = os.path.join('database', 'mysql', f'hbm_mysql_init_V{timestamp}.sql')
     
@@ -48,13 +56,18 @@ def to_init_sql():
             table_sql = table_sql.replace('VARCHAR(6)', 'ENUM(\'temp\',\'stable\',\'fixed\')')
             table_sql = table_sql.replace('VARCHAR(7)', 'ENUM(\'explore\',\'attack\',\'recover\',\'use\')')
             table_sql = table_sql.replace('VARCHAR(11)', 'ENUM(\'achievement\',\'game\',\'system\')')
+            table_sql = table_sql.replace('VARCHAR(1)', 'ENUM(\'m\',\'f\',\'o\')')
+            
+            # 添加字段注释
+            for column in table.columns:
+                if column.comment:
+                    table_sql = table_sql.replace(
+                        f"{column.name} {column.type}",
+                        f"{column.name} {column.type} COMMENT '{column.comment}'"
+                    )
             
             f.write(table_sql)
             f.write(";\n\n")
-            
-            # 仅生成一次外键约束
-            if table.name == 'experience_logs':
-                f.write("ALTER TABLE experience_logs ADD FOREIGN KEY (user_id) REFERENCES users(id);\n\n")
             
             # 生成索引SQL
             for index in table.indexes:
@@ -66,7 +79,7 @@ def to_init_sql():
             if table.name == 'experience_logs':
                 f.write("ALTER TABLE experience_logs ADD FOREIGN KEY (user_id) REFERENCES users(id);\n\n")
         
-        # 生成插入示例数据的SQL语句
+        # 生成插入示例数据的SQL语句(使用最新字段名)
         f.write("\n-- 示例数据\n")
         f.write("INSERT INTO users (id, username, password_hash, email, status, experience, energy) VALUES\n")
         f.write("('user001', 'player1', 'hash1', 'player1@test.com', 1, 100, 200),\n")
@@ -88,20 +101,20 @@ def to_init_sql():
         f.write("('card002', '治疗卡', '恢复生命值', 80, 'user002'),\n")
         f.write("('card003', '防御卡', '提高防御力', 120, 'user001');\n\n")
 
-        f.write("INSERT INTO energy_logs (user_id, change_amount, remaining, change_reason) VALUES\n")
+        f.write("INSERT INTO energy_logs (user_id, change_value, current_value, action_type) VALUES\n")
         f.write("('user001', -50, 150, 'attack'),\n")
         f.write("('user002', 20, 170, 'recover'),\n")
         f.write("('user003', -100, 156, 'explore');\n\n")
 
-        f.write("INSERT INTO experience_logs (user_id, change_amount, remaining, change_reason) VALUES\n")
-        f.write("('user001', 20, 120, 'game'),\n")
-        f.write("('user002', 10, 60, 'achievement'),\n")
-        f.write("('user001', 5, 125, 'system');\n\n")
+        f.write("INSERT INTO experience_logs (id, user_id, experience_change, current_experience, source_type) VALUES\n")
+        f.write("('exp001', 'user001', 20, 120, 'game'),\n")
+        f.write("('exp002', 'user002', 10, 60, 'achievement'),\n")
+        f.write("('exp003', 'user001', 5, 125, 'system');\n\n")
 
         f.write("INSERT INTO server_configs (config_key, config_value, data_type, description) VALUES\n")
         f.write("('space_stability_threshold', '80', 'int', '空间稳定转化线'),\n")
         f.write("('energy_recovery_rate', '10', 'int', '体力恢复时间(分钟)'),\n")
-        f.write("('max_energy', '256', 'int', '最大体力值');\n\n")
+        f.write("('max_energy', '256', 'int', '最大体力值');\n")
     
     print(f"SQL file generated: {file_path}")
 

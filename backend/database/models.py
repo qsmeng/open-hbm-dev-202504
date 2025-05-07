@@ -25,7 +25,7 @@ class User(Base):
     email = Column(String(32), unique=True, comment='电子邮箱(登录用)')
     phone_number = Column(String(15), unique=True, comment='电话号码(登录用)')
     status = Column(Integer, default=0, comment='账号状态: 0-未激活, 1-已激活')
-    gender = Column(String(1), default='o', comment='性别: m-男, f-女, o-其他')
+    gender = Column(Enum('m', 'f', 'o', name='gender_types'), default='o', comment='性别: m-男, f-女, o-其他')
     birthdate = Column(Date, comment='出生日期')
     country = Column(String(100), comment='国家')
     city = Column(String(100), comment='城市')
